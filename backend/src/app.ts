@@ -1,0 +1,112 @@
+import express, { Application, Request, Response } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
+
+// Import middleware
+import { errorHandler } from './middleware/errorHandler';
+import logger from './utils/logger';
+
+// Import routes
+import authRoutes from './routes/auth.routes';
+import ticketsRoutes from './routes/tickets.routes';
+import workersRoutes from './routes/workers.routes';
+import tenantsRoutes from './routes/tenants.routes';
+import paymentsRoutes from './routes/payments.routes';
+import documentsRoutes from './routes/documents.routes';
+import communityRoutes from './routes/community.routes';
+import inspectionsRoutes from './routes/inspections.routes';
+import notificationsRoutes from './routes/notifications.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import unitsRoutes from './routes/units.routes';
+
+// Import services
+import { SLAService } from './services/sla.service';
+
+// Load environment variables
+dotenv.config();
+
+const app: Application = express();
+const PORT = process.env.PORT || 5000;
+
+// Create necessary directories
+const uploadsDir = process.env.UPLOAD_DIR || './uploads';
+const logsDir = './logs';
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+
+app.use('/api/', limiter);
+
+// Static files for uploads
+app.use('/uploads', express.static(uploadsDir));
+
+// Health check
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: 'PropertyFlow API is running',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/tickets', ticketsRoutes);
+app.use('/api/workers', workersRoutes);
+app.use('/api/tenants', tenantsRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/documents', documentsRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/inspections', inspectionsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/units', unitsRoutes);
+
+// 404 handler
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+  });
+});
+
+// Error handler (must be last)
+app.use(errorHandler);
+
+// Start server
+app.listen(PORT, () => {
+  logger.info(`🚀 Server is running on port ${PORT}`);
+  logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Start SLA monitoring
+  const slaService = new SLAService();
+  slaService.startSLAMonitoring();
+  logger.info('✅ SLA monitoring started');
+});
+
+export default app;

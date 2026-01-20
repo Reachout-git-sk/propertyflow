@@ -1,0 +1,475 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TENANT
+  ADMIN
+  WORKER
+}
+
+enum TicketCategory {
+  PLUMBING
+  ELECTRICAL
+  HVAC
+  APPLIANCE
+  STRUCTURAL
+  PEST_CONTROL
+  GENERAL
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum TicketStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+enum TicketSource {
+  TENANT_REQUEST
+  INSPECTION
+  PREVENTIVE
+  ADMIN
+}
+
+enum TenancyStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum WorkerAvailability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum PaymentType {
+  RENT
+  DEPOSIT
+  LATE_FEE
+  MAINTENANCE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum DocumentType {
+  LEASE
+  ID
+  INSURANCE
+  OTHER
+}
+
+enum InspectionType {
+  MOVE_IN
+  MOVE_OUT
+  ROUTINE
+  EMERGENCY
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum PostCategory {
+  SALE
+  GIVEAWAY
+  ANNOUNCEMENT
+  QUESTION
+  OTHER
+}
+
+enum ServiceOrderType {
+  GROCERY
+  CLEANING
+  LAUNDRY
+  OTHER
+}
+
+enum ServiceOrderStatus {
+  PENDING
+  PROCESSING
+  FULFILLED
+  CANCELLED
+}
+
+enum NotificationType {
+  TICKET_UPDATE
+  PAYMENT_DUE
+  INSPECTION
+  ANNOUNCEMENT
+  OTHER
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          Role
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phone         String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLogin     DateTime? @map("last_login")
+
+  // Relations
+  tenancies               Tenancy[]
+  worker                  Worker?
+  ticketsCreated          Ticket[]                @relation("TicketCreator")
+  ticketAssignmentsBy     TicketAssignment[]      @relation("AssignmentCreator")
+  ticketActivityLogs      TicketActivityLog[]
+  ticketAttachments       TicketAttachment[]
+  paymentRecords          PaymentRecord[]
+  documentsUploaded       Document[]
+  inspections             Inspection[]
+  communityPosts          CommunityPost[]
+  postComments            PostComment[]
+  serviceOrders           ServiceOrder[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  emailWhitelistApprovals EmailWhitelist[]        @relation("WhitelistApprover")
+  inspectionFindings      InspectionFinding[]
+
+  @@map("users")
+}
+
+model EmailWhitelist {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  role       Role
+  approvedBy String?  @map("approved_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  approver User? @relation("WhitelistApprover", fields: [approvedBy], references: [id])
+
+  @@map("email_whitelist")
+}
+
+model Property {
+  id         String   @id @default(uuid())
+  name       String
+  address    String
+  city       String?
+  state      String?
+  zipCode    String?  @map("zip_code")
+  totalUnits Int?     @map("total_units")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  units Unit[]
+
+  @@map("properties")
+}
+
+model Unit {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  unitNumber String   @map("unit_number")
+  floor      Int?
+  bedrooms   Int?
+  bathrooms  Float?
+  squareFeet Int?     @map("square_feet")
+  rentAmount Float?   @map("rent_amount")
+  isOccupied Boolean  @default(false) @map("is_occupied")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenancies   Tenancy[]
+  tickets     Ticket[]
+  inspections Inspection[]
+
+  @@unique([propertyId, unitNumber])
+  @@map("units")
+}
+
+model Tenancy {
+  id            String         @id @default(uuid())
+  tenantId      String         @map("tenant_id")
+  unitId        String         @map("unit_id")
+  leaseStart    DateTime       @map("lease_start")
+  leaseEnd      DateTime       @map("lease_end")
+  rentAmount    Float          @map("rent_amount")
+  depositAmount Float?         @map("deposit_amount")
+  status        TenancyStatus  @default(ACTIVE)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  tenant         User            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit           Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  paymentRecords PaymentRecord[]
+  documents      Document[]
+
+  @@map("tenancies")
+}
+
+model Worker {
+  id                 String             @id @default(uuid())
+  userId             String             @unique @map("user_id")
+  companyName        String?            @map("company_name")
+  skills             String[]
+  hourlyRate         Float?             @map("hourly_rate")
+  availabilityStatus WorkerAvailability @default(AVAILABLE) @map("availability_status")
+  rating             Float              @default(0.0)
+  totalJobs          Int                @default(0) @map("total_jobs")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticketAssignments  TicketAssignment[]
+
+  @@map("workers")
+}
+
+model Ticket {
+  id            String         @id @default(uuid())
+  ticketNumber  String         @unique @map("ticket_number")
+  tenantId      String?        @map("tenant_id")
+  unitId        String?        @map("unit_id")
+  title         String
+  description   String
+  category      TicketCategory
+  priority      TicketPriority @default(MEDIUM)
+  status        TicketStatus   @default(NEW)
+  source        TicketSource   @default(TENANT_REQUEST)
+  slaHours      Int?           @map("sla_hours")
+  slaDeadline   DateTime?      @map("sla_deadline")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  assignedAt    DateTime?      @map("assigned_at")
+  completedAt   DateTime?      @map("completed_at")
+  closedAt      DateTime?      @map("closed_at")
+
+  tenant              User?                 @relation("TicketCreator", fields: [tenantId], references: [id], onDelete: SetNull)
+  unit                Unit?                 @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  assignments         TicketAssignment[]
+  activityLogs        TicketActivityLog[]
+  attachments         TicketAttachment[]
+  inspectionFindings  InspectionFinding[]
+
+  @@index([status])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([ticketNumber])
+  @@map("tickets")
+}
+
+model TicketAssignment {
+  id                  String    @id @default(uuid())
+  ticketId            String    @map("ticket_id")
+  workerId            String    @map("worker_id")
+  assignedBy          String?   @map("assigned_by")
+  assignedAt          DateTime  @default(now()) @map("assigned_at")
+  notes               String?
+  estimatedCompletion DateTime? @map("estimated_completion")
+
+  ticket     Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  worker     Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignmentCreator", fields: [assignedBy], references: [id])
+
+  @@unique([ticketId, workerId])
+  @@map("ticket_assignments")
+}
+
+model TicketActivityLog {
+  id        String   @id @default(uuid())
+  ticketId  String   @map("ticket_id")
+  userId    String?  @map("user_id")
+  action    String
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@map("ticket_activity_log")
+}
+
+model TicketAttachment {
+  id         String   @id @default(uuid())
+  ticketId   String   @map("ticket_id")
+  uploadedBy String?  @map("uploaded_by")
+  fileName   String   @map("file_name")
+  filePath   String   @map("file_path")
+  fileType   String?  @map("file_type")
+  fileSize   Int?     @map("file_size")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [uploadedBy], references: [id])
+
+  @@map("ticket_attachments")
+}
+
+model PaymentRecord {
+  id            String        @id @default(uuid())
+  tenancyId     String        @map("tenancy_id")
+  amount        Float
+  paymentType   PaymentType   @map("payment_type")
+  paymentMethod String?       @map("payment_method")
+  paymentDate   DateTime      @map("payment_date")
+  receiptPath   String?       @map("receipt_path")
+  status        PaymentStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  uploadedBy    String?       @map("uploaded_by")
+
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [uploadedBy], references: [id])
+
+  @@map("payment_records")
+}
+
+model Document {
+  id           String       @id @default(uuid())
+  tenancyId    String       @map("tenancy_id")
+  documentType DocumentType @map("document_type")
+  fileName     String       @map("file_name")
+  filePath     String       @map("file_path")
+  uploadedBy   String?      @map("uploaded_by")
+  version      Int          @default(1)
+  isCurrent    Boolean      @default(true) @map("is_current")
+  uploadedAt   DateTime     @default(now()) @map("uploaded_at")
+
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [uploadedBy], references: [id])
+
+  @@map("documents")
+}
+
+model Inspection {
+  id             String           @id @default(uuid())
+  unitId         String           @map("unit_id")
+  inspectorId    String?          @map("inspector_id")
+  inspectionType InspectionType?  @map("inspection_type")
+  scheduledDate  DateTime         @map("scheduled_date")
+  completedDate  DateTime?        @map("completed_date")
+  status         InspectionStatus @default(SCHEDULED)
+  notes          String?
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  unit     Unit                @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  inspector User?              @relation(fields: [inspectorId], references: [id])
+  findings InspectionFinding[]
+
+  @@map("inspections")
+}
+
+model InspectionFinding {
+  id               String   @id @default(uuid())
+  inspectionId     String   @map("inspection_id")
+  issueDescription String   @map("issue_description")
+  severity         String?
+  photoPath        String?  @map("photo_path")
+  ticketId         String?  @map("ticket_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  uploadedBy       String?  @map("uploaded_by")
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  ticket     Ticket?    @relation(fields: [ticketId], references: [id])
+  user       User?      @relation(fields: [uploadedBy], references: [id])
+
+  @@map("inspection_findings")
+}
+
+model CommunityPost {
+  id        String       @id @default(uuid())
+  authorId  String       @map("author_id")
+  title     String
+  content   String
+  category  PostCategory?
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments PostComment[]
+
+  @@map("community_posts")
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("post_comments")
+}
+
+model ServiceOrder {
+  id          String             @id @default(uuid())
+  tenantId    String             @map("tenant_id")
+  orderType   ServiceOrderType?  @map("order_type")
+  items       Json
+  status      ServiceOrderStatus @default(PENDING)
+  orderDate   DateTime           @map("order_date")
+  cutoffDate  DateTime?          @map("cutoff_date")
+  fulfilledAt DateTime?          @map("fulfilled_at")
+  notes       String?
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  tenant User @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("service_orders")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  title     String
+  message   String
+  type      NotificationType?
+  isRead    Boolean          @default(false) @map("is_read")
+  relatedId String?          @map("related_id")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}

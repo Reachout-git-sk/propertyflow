@@ -1,0 +1,42 @@
+
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+package-lock.json
+
+# Environment variables - NEVER COMMIT!
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# Build outputs
+dist/
+build/
+backend/dist/
+frontend/dist/
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# Uploads & temp files
+backend/uploads/
+*.tmp
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Database
+*.db
+*.sqlite
+
+# Prisma
+backend/prisma/migrations/**/migration.sql
