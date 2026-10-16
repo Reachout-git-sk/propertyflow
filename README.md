@@ -2,8 +2,9 @@
 
 > A modern, full-stack property management platform with ServiceNow-style ticketing, built with 100% free and open-source technologies.
 
+[![CI](https://github.com/Reachout-git-sk/propertyflow/actions/workflows/ci.yml/badge.svg)](https://github.com/Reachout-git-sk/propertyflow/actions/workflows/ci.yml)
 ![PropertyFlow](https://img.shields.io/badge/License-MIT-blue.svg)
-![Node](https://img.shields.io/badge/Node.js-20+-green.svg)
+![Node](https://img.shields.io/badge/Node.js-22-green.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
 
@@ -127,6 +128,20 @@ Frontend runs at: **http://localhost:5173**
 **4. Access the Application**
 
 Open browser: **http://localhost:5173**
+
+## 🧪 Running the Tests
+
+The backend tests use a separate database, `propertyflow_test`, on the same PostgreSQL.
+It is wiped and rebuilt from the migrations on every run, so your dev data is never touched.
+
+```bash
+docker compose up -d postgres
+cd backend
+npm test
+```
+
+The same tests run on GitHub Actions for every push and pull request
+(see [.github/workflows/ci.yml](./.github/workflows/ci.yml)).
 
 ## 🔐 Default Credentials
 
