@@ -68,8 +68,11 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Static files for uploads
-app.use('/uploads', express.static(uploadsDir));
+// Uploaded files are NOT served as a public folder (anyone with the link could read them).
+// Each file is downloaded through a route that checks the login and who owns the record:
+//   GET /api/tickets/:id/attachments/:attachmentId
+//   GET /api/payments/:id/receipt
+//   GET /api/documents/:id/download
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

@@ -417,6 +417,20 @@ export class TicketService {
     return attachment;
   }
 
+  async getAttachment(ticketId: string, attachmentId: string, viewer: Viewer) {
+    // The attachment must belong to THIS ticket, and the ticket must be one the viewer may
+    // see. Otherwise Bob could put Alice's attachment id under his own ticket's URL.
+    const attachment = await prisma.ticketAttachment.findFirst({
+      where: { id: attachmentId, ticketId, ticket: ownedBy(viewer) },
+    });
+
+    if (!attachment) {
+      throw new AppError('Attachment not found', 404);
+    }
+
+    return attachment;
+  }
+
   private calculateSLA(priority: any): number {
     const slaMap: any = {
       EMERGENCY: 4,

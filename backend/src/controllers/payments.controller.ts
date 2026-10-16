@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { ownedBy } from '../utils/access';
+import { sendStoredFile } from '../utils/files';
+import path from 'path';
 import { z } from 'zod';
 
 export const createPaymentSchema = z.object({
@@ -192,6 +194,24 @@ export class PaymentsController {
         message: 'Receipt uploaded successfully',
         data: payment,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async downloadReceipt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      // Someone else's payment gets the same 404 as a missing one
+      const payment = await prisma.paymentRecord.findFirst({
+        where: { id, tenancy: ownedBy(req.user!) },
+      });
+      if (!payment?.receiptPath) {
+        throw new AppError('Receipt not found', 404);
+      }
+
+      sendStoredFile(res, payment.receiptPath, `receipt${path.extname(payment.receiptPath)}`);
     } catch (error) {
       next(error);
     }

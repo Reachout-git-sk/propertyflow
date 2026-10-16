@@ -14,5 +14,6 @@ router.get('/', authorize('TENANT', 'ADMIN'), paymentsController.getPayments);
 router.post('/', authorize('TENANT', 'ADMIN'), validate(createPaymentSchema), paymentsController.createPayment);
 router.patch('/:id/status', authorize('ADMIN'), paymentsController.updatePaymentStatus);
 router.post('/:id/receipt', authorize('TENANT', 'ADMIN'), upload.single('receipt'), paymentsController.uploadReceipt);
+router.get('/:id/receipt', authorize('TENANT', 'ADMIN'), paymentsController.downloadReceipt);
 
 export default router;

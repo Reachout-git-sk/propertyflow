@@ -23,5 +23,6 @@ router.post('/', validate(createTicketSchema), ticketsController.createTicket);
 router.post('/:id/assign', authorize('ADMIN'), validate(assignTicketSchema), ticketsController.assignTicket);
 router.patch('/:id/status', authorize('ADMIN', 'WORKER'), validate(updateStatusSchema), ticketsController.updateStatus);
 router.post('/:id/attachments', upload.single('file'), ticketsController.uploadAttachment);
+router.get('/:id/attachments/:attachmentId', ticketsController.downloadAttachment);
 
 export default router;

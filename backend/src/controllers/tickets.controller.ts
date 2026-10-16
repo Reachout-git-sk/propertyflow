@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { TicketService } from '../services/ticket.service';
+import { sendStoredFile } from '../utils/files';
 import { z } from 'zod';
 
 const ticketService = new TicketService();
@@ -171,6 +172,18 @@ export class TicketsController {
         message: 'Attachment uploaded successfully',
         data: attachment,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async downloadAttachment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id, attachmentId } = req.params;
+
+      const attachment = await ticketService.getAttachment(id, attachmentId, req.user!);
+
+      sendStoredFile(res, attachment.filePath, attachment.fileName);
     } catch (error) {
       next(error);
     }

@@ -2,8 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { ownedBy } from '../utils/access';
-import path from 'path';
-import fs from 'fs';
+import { sendStoredFile } from '../utils/files';
 
 export class DocumentsController {
   async getDocuments(req: Request, res: Response, next: NextFunction) {
@@ -134,12 +133,7 @@ export class DocumentsController {
         throw new AppError('Document not found', 404);
       }
 
-      // Check if file exists
-      if (!fs.existsSync(document.filePath)) {
-        throw new AppError('File not found on server', 404);
-      }
-
-      res.download(document.filePath, document.fileName);
+      sendStoredFile(res, document.filePath, document.fileName);
     } catch (error) {
       next(error);
     }
