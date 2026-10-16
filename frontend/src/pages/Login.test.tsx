@@ -51,9 +51,8 @@ describe('Login page', () => {
     const requests = fakeBackendReply(401, { success: false, message: LOGIN_FAILED });
     const user = renderLogin();
 
-    // The labels on this page are not linked to their inputs, so find the inputs by type
-    await user.type(document.querySelector<HTMLInputElement>('input[type="email"]')!, 'admin@propertyflow.com');
-    await user.type(document.querySelector<HTMLInputElement>('input[type="password"]')!, 'Wrong@Pass1');
+    await user.type(screen.getByLabelText('Email'), 'admin@propertyflow.com');
+    await user.type(screen.getByLabelText('Password'), 'Wrong@Pass1');
     await user.click(screen.getByRole('button', { name: 'Sign In' }));
 
     expect(await screen.findByText(LOGIN_FAILED)).toBeInTheDocument();
