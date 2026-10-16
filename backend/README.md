@@ -16,13 +16,19 @@ Create a `.env` file in the backend directory:
 ```env
 DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/propertyflow?schema=public"
 APP_DATABASE_URL="postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow?schema=public"
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-JWT_EXPIRES_IN="7d"
+JWT_SECRET="<at least 32 random characters, see below>"
+JWT_EXPIRES_IN="1h"
 PORT=5000
 NODE_ENV="development"
 UPLOAD_DIR="./uploads"
 MAX_FILE_SIZE=10485760
 FRONTEND_URL="http://localhost:5173"
+```
+
+Generate `JWT_SECRET` with the command below. The app refuses to start without a real secret.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
 ### 3. Setup Database

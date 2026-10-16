@@ -63,16 +63,17 @@ DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/propertyflow?sc
 # The app itself connects as a restricted role, so row-level security applies
 APP_DATABASE_URL="postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow?schema=public"
 
-# Generate a random secret (or use any long random string)
-JWT_SECRET="abc123xyz789-REPLACE-THIS-WITH-RANDOM-STRING"
+# Required: at least 32 random characters (generate one with the command below)
+JWT_SECRET="<paste the generated secret here>"
 ```
 
-**Generate JWT Secret (Optional but recommended):**
+**Generate the JWT secret (required):**
 
-Windows PowerShell:
+The backend refuses to start if `JWT_SECRET` is missing, shorter than 32 characters,
+or one of the example values. This uses a cryptographically secure random generator:
 
-```powershell
--join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | % {[char]$_})
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
 ### 4️⃣ Database Setup

@@ -1,0 +1,11 @@
+# Keep secrets and local junk out of the Docker image.
+# Without this file, `COPY . .` in the Dockerfile copied backend/.env (with real secrets)
+# into the image, where anyone with the image could read it.
+.env
+.env.*
+!.env.example
+node_modules
+dist
+logs
+uploads
+coverage

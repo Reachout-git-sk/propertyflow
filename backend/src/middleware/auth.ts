@@ -24,7 +24,8 @@ export const authenticate = async (
 
     const token = authHeader.substring(7);
 
-    const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
+    // Only accept tokens signed with our secret using HS256 (the algorithm we sign with)
+    const decoded = jwt.verify(token, jwtConfig.secret, { algorithms: ['HS256'] }) as JwtPayload;
 
     req.user = decoded as any;
 
