@@ -16,10 +16,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// A 401 usually means the saved token is no longer accepted, so we forget it and reload on
+// the login page. A 401 from POST /auth/login only means a wrong email or password: the login
+// page shows that message itself, and a reload would hide it.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginAttempt = error.config?.url === '/auth/login';
+    if (error.response?.status === 401 && !isLoginAttempt) {
       localStorage.clear();
       window.location.href = '/login';
     }
