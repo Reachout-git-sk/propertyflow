@@ -25,6 +25,19 @@ import unitsRoutes from './routes/units.routes';
 
 const app: Application = express();
 
+// Behind a load balancer or reverse proxy (AWS ALB, nginx), every request seems to come from
+// the proxy's IP, so all users would share ONE rate-limit counter. TRUST_PROXY is the number
+// of proxies in front of the app; Express then reads the visitor's real IP from the
+// X-Forwarded-For header. Leave it unset when nothing sits in front (as in local dev),
+// otherwise anyone could fake their IP with that header.
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  if (!Number.isInteger(hops) || hops < 1) {
+    throw new Error(`TRUST_PROXY must be a whole number of proxies (like 1). Got "${process.env.TRUST_PROXY}".`);
+  }
+  app.set('trust proxy', hops);
+}
+
 // Create necessary directories
 const uploadsDir = process.env.UPLOAD_DIR || './uploads';
 const logsDir = './logs';
