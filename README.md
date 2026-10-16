@@ -158,20 +158,21 @@ After seeding the database:
 ## 📚 Documentation
 
 - [Setup Guide](./SETUP.md) - Detailed installation steps
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
 - [API Documentation](./backend/README.md) - Backend API docs
-- [Contributing](./CONTRIBUTING.md) - How to contribute
+- [Security work, October 2026](./CHANGES_FOR_INTERVIEW.md) - What was added, how it is tested, known gaps
 
 ## 🔒 Security
 
 - ✅ Email whitelist system
 - ✅ Password hashing (bcrypt)
-- ✅ JWT authentication
+- ✅ JWT authentication (app refuses to start without a strong secret; 1-hour tokens)
 - ✅ Role-based access control (RBAC)
+- ✅ Ownership checks on every tenant-reachable record (404 for other people's records)
+- ✅ PostgreSQL row-level security on tickets, tenancies, payments, documents and service orders
 - ✅ SQL injection protection (Prisma)
-- ✅ XSS protection (Helmet)
-- ✅ Rate limiting
-- ✅ Audit logging
+- ✅ Security headers (Helmet)
+- ✅ Rate limiting, with stricter limits on failed logins
+- ⏳ Audit logging (the `audit_logs` table exists but is not written to yet)
 
 ## 📄 License
 
