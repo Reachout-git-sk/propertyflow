@@ -182,6 +182,10 @@ After seeding the database:
 - ✅ JWT authentication (app refuses to start without a strong secret; 1-hour tokens)
 - ✅ Role-based access control (RBAC)
 - ✅ Ownership checks on every tenant-reachable record (404 for other people's records)
+- ✅ Uploaded files only through logged-in, ownership-checked download routes (no public folder)
+- ✅ Workers can only change tickets assigned to them
+- ✅ Same error for every failed login or sign-up (no account enumeration)
+- ✅ Deactivated users are locked out on their next request
 - ✅ PostgreSQL row-level security on tickets, tenancies, payments, documents and service orders
 - ✅ SQL injection protection (Prisma)
 - ✅ Security headers (Helmet)
