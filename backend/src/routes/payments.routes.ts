@@ -10,9 +10,9 @@ const paymentsController = new PaymentsController();
 
 router.use(authenticate);
 
-router.get('/', paymentsController.getPayments);
+router.get('/', authorize('TENANT', 'ADMIN'), paymentsController.getPayments);
 router.post('/', authorize('TENANT', 'ADMIN'), validate(createPaymentSchema), paymentsController.createPayment);
 router.patch('/:id/status', authorize('ADMIN'), paymentsController.updatePaymentStatus);
-router.post('/:id/receipt', upload.single('receipt'), paymentsController.uploadReceipt);
+router.post('/:id/receipt', authorize('TENANT', 'ADMIN'), upload.single('receipt'), paymentsController.uploadReceipt);
 
 export default router;

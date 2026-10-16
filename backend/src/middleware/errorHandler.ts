@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
 import logger from '../utils/logger';
 
 export class AppError extends Error {
@@ -19,6 +20,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // multer saves an uploaded file before the controller runs. If the request then
+  // fails (for example "Ticket not found"), delete the file so it does not stay on disk.
+  if (req.file) {
+    fs.rmSync(req.file.path, { force: true });
+  }
+
   if (err instanceof AppError) {
     logger.error(`${err.statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
     

@@ -36,7 +36,13 @@ export class TenantsController {
       const skip = (Number(page) - 1) * Number(limit);
 
       const where: any = { role: 'TENANT' as any };
-      
+
+      // A tenant only sees themselves. (The tenant ticket form calls this list
+      // to find its own unit; before, it received every tenant's email and phone.)
+      if (req.user!.role === 'TENANT') {
+        where.id = req.user!.id;
+      }
+
       if (search) {
         where.OR = [
           { email: { contains: search as string, mode: 'insensitive' } },
@@ -94,6 +100,11 @@ export class TenantsController {
   async getTenantById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+
+      // A tenant may only open their own profile; anyone else's looks like it does not exist
+      if (req.user!.role === 'TENANT' && id !== req.user!.id) {
+        throw new AppError('Tenant not found', 404);
+      }
 
       const tenant = await prisma.user.findUnique({
         where: { id, role: 'TENANT' as any },

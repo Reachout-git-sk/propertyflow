@@ -2,19 +2,33 @@ import prisma from '../config/database';
 import { generateTicketNumber } from '../utils/ticketNumberGenerator';
 import { AppError } from '../middleware/errorHandler';
 import { NotificationService } from './notification.service';
+import { ownedBy, Viewer } from '../utils/access';
 
 const notificationService = new NotificationService();
 
 export class TicketService {
-  async createTicket(data: {
-    tenantId: string;
-    unitId: string;
-    title: string;
-    description: string;
-    category: any;
-    priority?: any;
-    source?: any;
-  }) {
+  async createTicket(
+    data: {
+      tenantId: string;
+      unitId: string;
+      title: string;
+      description: string;
+      category: any;
+      priority?: any;
+      source?: any;
+    },
+    viewer: Viewer
+  ) {
+    // A tenant may only report problems in a unit they currently rent
+    if (viewer.role === 'TENANT') {
+      const rentsThisUnit = await prisma.tenancy.findFirst({
+        where: { unitId: data.unitId, status: 'ACTIVE', ...ownedBy(viewer) },
+      });
+      if (!rentsThisUnit) {
+        throw new AppError('Unit not found', 404);
+      }
+    }
+
     const ticketNumber = generateTicketNumber();
     
     const slaHours = this.calculateSLA(data.priority || 'MEDIUM');
@@ -169,9 +183,10 @@ export class TicketService {
     };
   }
 
-  async getTicketById(ticketId: string) {
-    const ticket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+  async getTicketById(ticketId: string, viewer: Viewer) {
+    // Ownership check: a tenant's other-people's-ticket lookup finds nothing, so it gets 404
+    const ticket = await prisma.ticket.findFirst({
+      where: { id: ticketId, ...ownedBy(viewer) },
       include: {
         tenant: {
           select: {
@@ -366,12 +381,22 @@ export class TicketService {
 
   async addAttachment(
     ticketId: string,
-    uploadedBy: string,
+    viewer: Viewer,
     fileName: string,
     filePath: string,
     fileType: string,
     fileSize: number
   ) {
+    const ticket = await prisma.ticket.findFirst({
+      where: { id: ticketId, ...ownedBy(viewer) },
+    });
+
+    if (!ticket) {
+      throw new AppError('Ticket not found', 404);
+    }
+
+    const uploadedBy = viewer.id;
+
     const attachment = await prisma.ticketAttachment.create({
       data: {
         ticketId,

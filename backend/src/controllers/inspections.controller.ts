@@ -148,15 +148,18 @@ export class InspectionsController {
             });
 
             if (unit && unit.tenancies.length > 0) {
-              const ticket = await ticketService.createTicket({
-                tenantId: unit.tenancies[0].tenantId,
-                unitId: unit.id,
-                title: `Inspection Finding: ${finding.issueDescription.substring(0, 50)}`,
-                description: finding.issueDescription,
-                category: finding.category || 'GENERAL',
-                priority: finding.severity === 'MAJOR' ? 'HIGH' : 'MEDIUM',
-                source: 'INSPECTION',
-              });
+              const ticket = await ticketService.createTicket(
+                {
+                  tenantId: unit.tenancies[0].tenantId,
+                  unitId: unit.id,
+                  title: `Inspection Finding: ${finding.issueDescription.substring(0, 50)}`,
+                  description: finding.issueDescription,
+                  category: finding.category || 'GENERAL',
+                  priority: finding.severity === 'MAJOR' ? 'HIGH' : 'MEDIUM',
+                  source: 'INSPECTION',
+                },
+                req.user!
+              );
 
               // Link ticket to finding
               await prisma.inspectionFinding.update({

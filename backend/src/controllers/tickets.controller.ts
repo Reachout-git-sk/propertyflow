@@ -35,14 +35,17 @@ export class TicketsController {
       const { unitId, title, description, category, priority } = req.body;
       const tenantId = req.user!.id;
 
-      const ticket = await ticketService.createTicket({
-        tenantId,
-        unitId,
-        title,
-        description,
-        category: category as any,
-        priority: priority as any,
-      });
+      const ticket = await ticketService.createTicket(
+        {
+          tenantId,
+          unitId,
+          title,
+          description,
+          category: category as any,
+          priority: priority as any,
+        },
+        req.user!
+      );
 
       res.status(201).json({
         success: true,
@@ -89,7 +92,7 @@ export class TicketsController {
     try {
       const { id } = req.params;
 
-      const ticket = await ticketService.getTicketById(id);
+      const ticket = await ticketService.getTicketById(id, req.user!);
 
       res.status(200).json({
         success: true,
@@ -145,7 +148,6 @@ export class TicketsController {
   async uploadAttachment(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const userId = req.user!.id;
       const file = req.file;
 
       if (!file) {
@@ -157,7 +159,7 @@ export class TicketsController {
 
       const attachment = await ticketService.addAttachment(
         id,
-        userId,
+        req.user!,
         file.originalname,
         file.path,
         file.mimetype,

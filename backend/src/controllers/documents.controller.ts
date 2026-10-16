@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { ownedBy } from '../utils/access';
 import path from 'path';
 import fs from 'fs';
 
@@ -66,6 +67,15 @@ export class DocumentsController {
         throw new AppError('No file uploaded', 400);
       }
 
+      // A tenant may only upload to their own tenancy (otherwise they could
+      // also replace another tenant's "current" lease below)
+      const tenancy = await prisma.tenancy.findFirst({
+        where: { id: tenancyId, ...ownedBy(req.user!) },
+      });
+      if (!tenancy) {
+        throw new AppError('Tenancy not found', 404);
+      }
+
       // Mark previous versions as not current
       await prisma.document.updateMany({
         where: {
@@ -113,23 +123,15 @@ export class DocumentsController {
   async downloadDocument(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
 
-      const document = await prisma.document.findUnique({
-        where: { id },
-        include: {
-          tenancy: true,
-        },
+      // Someone else's document gets the same 404 as a missing one.
+      // (A 403 would confirm that the id exists.)
+      const document = await prisma.document.findFirst({
+        where: { id, tenancy: ownedBy(req.user!) },
       });
 
       if (!document) {
         throw new AppError('Document not found', 404);
-      }
-
-      // Check permissions
-      if (userRole === 'TENANT' && document.tenancy.tenantId !== userId) {
-        throw new AppError('You do not have permission to access this document', 403);
       }
 
       // Check if file exists

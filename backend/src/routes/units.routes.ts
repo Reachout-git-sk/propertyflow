@@ -8,7 +8,8 @@ const unitsController = new UnitsController();
 
 router.use(authenticate);
 
-router.get('/', unitsController.getUnits);
+// The full list includes every tenant's name and email, so it is admin-only
+router.get('/', authorize('ADMIN'), unitsController.getUnits);
 router.get('/available', authorize('ADMIN'), unitsController.getAvailableUnits);
 
 export default router;

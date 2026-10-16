@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { ownedBy } from '../utils/access';
 import { z } from 'zod';
 
 export const createPaymentSchema = z.object({
@@ -94,6 +95,14 @@ export class PaymentsController {
       const { tenancyId, amount, paymentType, paymentMethod, paymentDate, notes } = req.body;
       const uploadedBy = req.user!.id;
 
+      // A tenant may only record payments on their own tenancy
+      const tenancy = await prisma.tenancy.findFirst({
+        where: { id: tenancyId, ...ownedBy(req.user!) },
+      });
+      if (!tenancy) {
+        throw new AppError('Tenancy not found', 404);
+      }
+
       const payment = await prisma.paymentRecord.create({
         data: {
           tenancyId,
@@ -161,6 +170,14 @@ export class PaymentsController {
 
       if (!file) {
         throw new AppError('No file uploaded', 400);
+      }
+
+      // The payment must belong to one of the tenant's own tenancies
+      const ownPayment = await prisma.paymentRecord.findFirst({
+        where: { id, tenancy: ownedBy(req.user!) },
+      });
+      if (!ownPayment) {
+        throw new AppError('Payment not found', 404);
       }
 
       const payment = await prisma.paymentRecord.update({
