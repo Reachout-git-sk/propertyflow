@@ -22,8 +22,6 @@ export function tokenFor(user: { id: string; email: string; role: string }) {
   });
 }
 
-let ticketCounter = 0;
-
 /**
  * Builds a small building with two tenants who must never see each other's data:
  *   - Alice rents unit 101, Bob rents unit 102
@@ -67,10 +65,10 @@ export async function createWorld() {
   const tenancyA = await tenancy(alice.id, unitA.id);
   const tenancyB = await tenancy(bob.id, unitB.id);
 
+  // No ticketNumber: the database assigns it, exactly as in the app
   const ticket = (tenantId: string, unitId: string, title: string) =>
     ownerDb.ticket.create({
       data: {
-        ticketNumber: `TKT-TEST-${++ticketCounter}`,
         tenantId,
         unitId,
         title,

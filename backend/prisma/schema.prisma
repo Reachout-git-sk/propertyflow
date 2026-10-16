@@ -245,7 +245,8 @@ model Worker {
 
 model Ticket {
   id            String         @id @default(uuid())
-  ticketNumber  String         @unique @map("ticket_number")
+  // Filled in by PostgreSQL from a sequence, e.g. TKT-2026-000042 (see the ticket_number_sequence migration)
+  ticketNumber  String         @unique @default(dbgenerated("next_ticket_number()")) @map("ticket_number")
   tenantId      String?        @map("tenant_id")
   unitId        String?        @map("unit_id")
   title         String

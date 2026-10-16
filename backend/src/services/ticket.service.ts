@@ -1,5 +1,4 @@
 import prisma from '../config/database';
-import { generateTicketNumber } from '../utils/ticketNumberGenerator';
 import { AppError } from '../middleware/errorHandler';
 import { NotificationService } from './notification.service';
 import { ownedBy, Viewer } from '../utils/access';
@@ -29,15 +28,13 @@ export class TicketService {
       }
     }
 
-    const ticketNumber = generateTicketNumber();
-    
     const slaHours = this.calculateSLA(data.priority || 'MEDIUM');
     const slaDeadline = new Date();
     slaDeadline.setHours(slaDeadline.getHours() + slaHours);
 
+    // No ticketNumber here: PostgreSQL assigns the next one (TKT-2026-000042) on insert
     const ticket = await prisma.ticket.create({
       data: {
-        ticketNumber,
         tenantId: data.tenantId,
         unitId: data.unitId,
         title: data.title,
@@ -90,7 +87,7 @@ export class TicketService {
       await notificationService.createNotification({
         userId: admin.id,
         title: 'New Maintenance Request',
-        message: `New ticket ${ticketNumber}: ${data.title}`,
+        message: `New ticket ${ticket.ticketNumber}: ${data.title}`,
         type: 'TICKET_UPDATE',
         relatedId: ticket.id,
       });
