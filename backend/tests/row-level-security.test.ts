@@ -1,3 +1,5 @@
+import http from 'http';
+import { AddressInfo } from 'net';
 import request from 'supertest';
 import app from '../src/app';
 import prisma, { runAsSystem, runWithDbContext } from '../src/config/database';
@@ -158,14 +160,48 @@ describe('safety of the setup itself', () => {
     expect(await ownerDb.ticket.count()).toBeGreaterThanOrEqual(2);
   });
 
-  it('keeps the logged-in user through a large multipart upload (multer)', async () => {
-    // A 4 MB body arrives in many network chunks. If the request lost its database
-    // context on the way through multer, RLS would hide Alice's own ticket (404).
-    const big = Buffer.alloc(4 * 1024 * 1024, 1);
-    const res = await request(app)
-      .post(`/api/tickets/${w.ticketA.id}/attachments`)
-      .set(auth(w.tokens.alice))
-      .attach('file', big, fakePng.options);
-    expect(res.status).toBe(201);
+  it('keeps the logged-in user when an upload arrives slowly (multer)', async () => {
+    // Like a phone on a slow network: the second half of the file arrives 200 ms later.
+    // multer finishes reading inside that later network event. If the request's database
+    // context were lost there, RLS would hide Alice's own ticket and she would get 404.
+    const server = app.listen(0);
+    const { port } = server.address() as AddressInfo;
+    const boundary = 'propertyflow-test-boundary';
+    const firstHalf = Buffer.from(
+      `--${boundary}\r\n` +
+        'Content-Disposition: form-data; name="file"; filename="slow.png"\r\n' +
+        'Content-Type: image/png\r\n\r\n' +
+        'first half of the picture, '
+    );
+    const secondHalf = Buffer.from(`second half of the picture\r\n--${boundary}--\r\n`);
+
+    try {
+      const response = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+        const req = http.request(
+          {
+            port,
+            method: 'POST',
+            path: `/api/tickets/${w.ticketA.id}/attachments`,
+            headers: {
+              ...auth(w.tokens.alice),
+              'Content-Type': `multipart/form-data; boundary=${boundary}`,
+              'Content-Length': firstHalf.length + secondHalf.length,
+            },
+          },
+          (res) => {
+            let body = '';
+            res.on('data', (chunk) => (body += chunk));
+            res.on('end', () => resolve({ status: res.statusCode!, body }));
+          }
+        );
+        req.on('error', reject);
+        req.write(firstHalf);
+        setTimeout(() => req.end(secondHalf), 200);
+      });
+
+      expect(response).toMatchObject({ status: 201 });
+    } finally {
+      server.close();
+    }
   });
 });
