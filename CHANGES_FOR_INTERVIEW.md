@@ -23,11 +23,12 @@ as an audit of my own project. Say it that way.
 | 9 | Login and sign-up no longer reveal which emails have an account (account enumeration) | `f69dde0` | 8 tests, **5 failed before** |
 | 10 | No default password for admin-created tenants; the password is never sent back | `2c28829` | 4 tests, **3 failed before** |
 | 11 | A deactivated or deleted user is locked out on their next request, not up to 1 hour later | `2d7aee6` | 5 tests, **3 failed before** |
+| 12 | Sign-up needs a one-time invite code from an admin, so knowing an approved email is no longer enough | `6a49d9b` | 13 new tests + 1 updated, **14 failed before** |
 
-Rows 0–6 and 7–11 were all done on 16 October 2026 (7–11 in the evening, as a second pass
+Rows 0–6 and 7–12 were all done on 16 October 2026 (7–12 in the evening, as a second pass
 over the gaps the first pass found).
 
-**103 tests in 10 files, all passing.** Run them with `docker compose up -d postgres`, then
+**116 tests in 11 files, all passing.** Run them with `docker compose up -d postgres`, then
 `cd backend && npm test`.
 
 ## What each change means
@@ -123,6 +124,25 @@ lookup a database can do, while the alternatives also cost something. Very short
 refresh tokens are more moving parts. A list of banned tokens needs a lookup too. I did not
 benchmark the extra lookup.
 
+**12. Sign-up needs an invite code.** Sign-up created an account for any email on the
+approved list (`email_whitelist`) that had no account yet, with the role it was approved for,
+and never checked that the caller owns that email. The seed approves `worker1@example.com` as a
+WORKER, so anyone who knew or guessed it could claim a worker account and pick its password. The
+test for this got 201 (account created) with a made-up code. Turning sign-up off was simpler, but
+sign-up is the only way to create a WORKER account (there is no admin route for it), so I kept it
+and made it invite-only. An admin calls `POST /api/auth/invites` with an email and a role and
+gets a one-time code (16 random bytes, valid 7 days), shown once, to hand to that person; a new
+invite replaces the old code. Sign-up now needs that code. Only its SHA-256 hash is stored, like
+a password, so a database leak does not reveal live codes. (A fast hash is fine here because the
+code is random and long; bcrypt's slowness is for short passwords people choose.) A missing code
+gets 400; a wrong, expired, used, or other email's code gets the same 403 as every other refusal.
+The code is *used up* in one `UPDATE` that also checks it is still there, so if two sign-ups
+race with one code, PostgreSQL lets only one through. I checked that this test catches the
+bug: with that step switched off, the second sign-up crashed with a 500. Trade-offs: the admin
+must hand the code over (the app sends no email), and if creating the account fails after the
+code was used up, the admin sends a new invite. There is no screen for invites or for sign-up
+yet (API only).
+
 ## Resume line check
 
 > "a multi-tenant backend with row-level security and 8 authenticated, rate-limited REST
@@ -132,7 +152,7 @@ benchmark the extra lookup.
 |---|---|---|
 | multi-tenant | Partly | "Tenants" are **renters** in one property company's system, not separate companies (SaaS tenants). Say so if asked. |
 | row-level security | **Yes, since 16 Oct 2026** | Name the tables and the restricted role. |
-| 8 authenticated APIs | Number is wrong | 45 endpoints in 11 route groups (43 before the two download routes of 16 Oct 2026); all except signup and login require a JWT. |
+| 8 authenticated APIs | Number is wrong | 46 endpoints in 11 route groups (43 before the two download routes and the invite route of 16 Oct 2026); all except signup and login require a JWT. |
 | rate-limited | Yes | General limit from the start; strict login limits since 16 Oct 2026. |
 | deployed to AWS (EKS, RDS) | **No** | Nothing is deployed. Remove it, or say "designed for" only after writing a plan. |
 | Docker | Partly | Postgres for development runs in Docker. The full `docker compose up` stack does not build (see gaps). |
@@ -143,10 +163,10 @@ A version you can defend line by line:
 
 > Built PropertyFlow, a property-management backend (Express, TypeScript, Prisma, PostgreSQL)
 > with JWT auth and role-based access. Audited it in October 2026: fixed IDOR and other
-> access-control bugs (public file uploads, worker permissions, account enumeration, tokens
-> that outlived deactivation), added PostgreSQL row-level security as defense in depth, startup
-> secret validation, login rate limiting and a GitHub Actions CI pipeline running 103
-> integration tests on Postgres.
+> access-control bugs (public file uploads, worker permissions, account enumeration, sign-up
+> without proof of email ownership, tokens that outlived deactivation), added PostgreSQL
+> row-level security as defense in depth, startup secret validation, login rate limiting and
+> a GitHub Actions CI pipeline running 116 integration tests on Postgres.
 
 ## How to talk about it
 
@@ -157,7 +177,8 @@ A version you can defend line by line:
 - **Name the trade-offs yourself:** RLS adds a small transaction per query; rate-limit counters
   live in memory (one server only); the 1-hour token means users log in again hourly; every
   request now does one extra user lookup; a deactivated user sees "Invalid email or password"
-  and must ask the admin why; admins know the passwords they set for tenants.
+  and must ask the admin why; admins know the passwords they set for tenants; admins hand
+  invite codes over themselves because the app sends no email.
 - **Lines you can use for the 16 October 2026 second pass:**
   - "My first audit listed its own gaps. I fixed five of them the same day, test first: for
     example, the uploads folder was public, and a test showed a file came back with no login."
@@ -165,6 +186,10 @@ A version you can defend line by line:
     for unknown emails made those answers about 60 ms faster, a timing leak."
   - "Deactivating a user now works on their next request. It costs one primary-key lookup per
     request, which I chose over refresh tokens for an app this size."
+  - "Sign-up trusted the approved-email list alone, so anyone who guessed an approved worker
+    email could take that account. On 16 October 2026 I made it invite-only: the admin gets a
+    one-time code, stored only as a hash, and it is used up in a single UPDATE, so even two
+    sign-ups at the same moment make one account."
 - **Have a bug story ready:** the flaky upload test. A test failed once in a full run, I
   reproduced it every time by sending the upload in two halves 200 ms apart, found that
   multer lost the AsyncLocalStorage context, fixed it with `AsyncLocalStorage.bind`, and kept
@@ -172,16 +197,16 @@ A version you can defend line by line:
 
 ## Still not done (known gaps)
 
-Fixed on 16 Oct 2026 and moved to the table above (rows 7–11): public `/uploads`, workers
+Fixed on 16 Oct 2026 and moved to the table above (rows 7–12): public `/uploads`, workers
 changing any ticket, login and sign-up account enumeration, the `ChangeMe@123` default
-password, and tokens that kept working after deactivation. Found while fixing them: items 2–6.
+password, tokens that kept working after deactivation, and sign-up without proof of email
+ownership. Found while fixing them: items 2–6 (item 2 is now fixed too).
 
 1. No refresh tokens, and the token is stored in `localStorage` (readable if there is ever an
    XSS bug).
-2. Sign-up does not check that you own the email. Whoever knows an approved email that has no
-   account yet can claim it, with the role it was approved for (for example a WORKER email).
-   The frontend has no sign-up form at all ("Contact admin"), so the next step is to turn the
-   endpoint off, or add email verification or invitation links.
+2. Sign-up email ownership: **fixed 16 Oct 2026** (`6a49d9b`, row 12). Sign-up now needs a
+   one-time invite code from an admin. Still missing: no screen for creating invites or for
+   signing up with a code (API only), and no emailed invitation links (the app sends no email).
 3. The rule "workers only change tickets assigned to them" is in the code only. Row-level
    security still lets the worker role update every ticket.
 4. Workers can set any status, including CLOSED and CANCELLED, and the status value is not
