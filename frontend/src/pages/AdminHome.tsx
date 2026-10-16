@@ -5,6 +5,7 @@ import { AdminDashboard } from "../components/admin/AdminDashboard";
 import { TicketManagement } from "../components/admin/TicketManagement";
 import { TicketDetail } from "../components/admin/TicketDetail";
 import { TenantManagement } from "../components/admin/TenantManagement";
+import { CreateInvite } from "../components/admin/CreateInvite";
 
 export const AdminHome = () => {
   return (
@@ -14,6 +15,7 @@ export const AdminHome = () => {
         <Route path="tickets" element={<TicketManagement />} />
         <Route path="tickets/:id" element={<TicketDetail />} />
         <Route path="tenants" element={<TenantManagement />} />
+        <Route path="invites" element={<CreateInvite />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </DashboardLayout>

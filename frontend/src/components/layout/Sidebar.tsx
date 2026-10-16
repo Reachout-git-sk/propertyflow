@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Ticket, Users, Wrench } from "lucide-react";
+import { Home, Ticket, UserPlus, Users, Wrench } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 export const Sidebar = () => {
@@ -16,6 +16,7 @@ export const Sidebar = () => {
     { to: "/admin/tickets", icon: Ticket, label: "Tickets" },
     { to: "/admin/tenants", icon: Users, label: "Tenants" },
     { to: "/admin/workers", icon: Wrench, label: "Workers" },
+    { to: "/admin/invites", icon: UserPlus, label: "Invites" },
   ];
 
   const workerLinks = [
