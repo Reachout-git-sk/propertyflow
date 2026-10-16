@@ -228,6 +228,10 @@ ownership. Found while fixing them: items 2–6 (item 2 is now fixed too).
    images are only built on this computer (CI does not build them, no registry), and in
    production mode the backend logs only to files, so `docker compose logs backend` shows just
    the startup steps.
-10. CI covers the backend only (no frontend build), and there is no deployment (CD).
+10. CI frontend: **added 16 Oct 2026**. Before, CI covered the backend only. Now a second job
+    (`frontend` in `ci.yml`) runs `npm ci`, the Vitest tests (16/16 when added) and
+    `npm run build` (tsc and vite build) next to the backend job. Both pass on this computer,
+    but the job has not run on GitHub yet because nothing has been pushed since. Still
+    missing: no deployment (CD).
 11. README listed "Audit logging", but the `audit_logs` table is never written to.
 12. No AWS deployment and no CloudWatch monitoring.
