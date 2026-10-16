@@ -1,4 +1,7 @@
-version: '3.8'
+# Whole stack: `docker compose up --build`, then open http://localhost
+# Needs a .env file next to this one with JWT_SECRET (see .env.example).
+#
+# Start order: postgres is ready -> backend has migrated and answers /health -> frontend.
 
 services:
   postgres:
@@ -14,6 +17,13 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1: on the very first start, Postgres runs a setup-only server that
+      # accepts no network connections, so this only passes once the real server is up
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "propertyflow", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - propertyflow-network
 
@@ -23,10 +33,15 @@ services:
       dockerfile: Dockerfile
     container_name: propertyflow-backend
     restart: unless-stopped
+    # A tiny init process runs as PID 1 and passes `docker stop` on to Node, so the
+    # container stops at once instead of being killed after 10 seconds
+    init: true
     ports:
-      - "5000:5000"
+      # For debugging from this computer only (curl http://localhost:5000/health).
+      # The browser goes through the frontend's nginx at http://localhost instead.
+      - "127.0.0.1:5000:5000"
     environment:
-      # Owner connection: only for `prisma migrate deploy` and `npm run db:app-role` at startup
+      # Owner connection: only for the startup steps (migrations, app role password)
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/propertyflow?schema=public
       # The app's own connection as the restricted role, so row-level security applies
       APP_DATABASE_URL: postgresql://propertyflow_app:local-dev-only-password@postgres:5432/propertyflow?schema=public
@@ -37,8 +52,20 @@ services:
       JWT_EXPIRES_IN: 1h
       PORT: 5000
       NODE_ENV: production
+      # Requests arrive through ONE proxy (the frontend's nginx). Express then takes the
+      # visitor's IP from X-Forwarded-For, so login rate limits count each visitor separately.
+      TRUST_PROXY: 1
+      FRONTEND_URL: http://localhost
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # Migrations run before the server starts; give them time before counting failures
+      start_period: 60s
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/logs:/app/logs
@@ -49,12 +76,18 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Read by Vite at BUILD time and written into the JavaScript files.
+        # "/api" = same address as the page; nginx forwards it to the backend.
+        VITE_API_URL: /api
     container_name: propertyflow-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      # Only this computer, like the ports above
+      - "127.0.0.1:80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - propertyflow-network
 

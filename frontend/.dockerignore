@@ -1,0 +1,7 @@
+# Keep local files out of the Docker image. .env could hold settings meant only for this
+# computer; the Docker build gets VITE_API_URL from docker-compose.yml instead.
+.env
+.env.*
+!.env.example
+node_modules
+dist
