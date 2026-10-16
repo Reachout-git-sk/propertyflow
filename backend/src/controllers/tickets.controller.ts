@@ -132,9 +132,8 @@ export class TicketsController {
     try {
       const { id } = req.params;
       const { status, notes } = req.body;
-      const userId = req.user!.id;
 
-      const ticket = await ticketService.updateTicketStatus(id, status as any, userId, notes);
+      const ticket = await ticketService.updateTicketStatus(id, status as any, req.user!, notes);
 
       res.status(200).json({
         success: true,

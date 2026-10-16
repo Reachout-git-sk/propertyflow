@@ -328,7 +328,7 @@ export class TicketService {
   async updateTicketStatus(
     ticketId: string,
     status: any,
-    userId: string,
+    viewer: Viewer,
     notes?: string
   ) {
     const ticket = await prisma.ticket.findUnique({
@@ -339,6 +339,9 @@ export class TicketService {
       throw new AppError('Ticket not found', 404);
     }
 
+    await this.checkWorkerIsAssigned(ticketId, viewer);
+
+    const userId = viewer.id;
     const updateData: any = { status };
 
     if (status === 'COMPLETED') {
@@ -392,6 +395,8 @@ export class TicketService {
       throw new AppError('Ticket not found', 404);
     }
 
+    await this.checkWorkerIsAssigned(ticketId, viewer);
+
     const uploadedBy = viewer.id;
 
     const attachment = await prisma.ticketAttachment.create({
@@ -429,6 +434,23 @@ export class TicketService {
     }
 
     return attachment;
+  }
+
+  // Workers may READ every ticket (their job list), but only CHANGE tickets an admin
+  // assigned to them. This is 403, not 404: the worker can already see that the ticket
+  // exists, so pretending it does not would hide nothing.
+  private async checkWorkerIsAssigned(ticketId: string, viewer: Viewer) {
+    if (viewer.role !== 'WORKER') {
+      return;
+    }
+
+    const assignment = await prisma.ticketAssignment.findFirst({
+      where: { ticketId, worker: { userId: viewer.id } },
+    });
+
+    if (!assignment) {
+      throw new AppError('You can only update tickets assigned to you', 403);
+    }
   }
 
   private calculateSLA(priority: any): number {

@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { ownWorkerProfile, Viewer } from '../utils/access';
 import { WorkerAvailability } from '@prisma/client';
 
 export class WorkerService {
@@ -57,9 +58,10 @@ export class WorkerService {
     }));
   }
 
-  async getWorkerById(workerId: string) {
-    const worker = await prisma.worker.findUnique({
-      where: { id: workerId },
+  async getWorkerById(workerId: string, viewer: Viewer) {
+    // A worker only finds their own profile; another worker's answers 404
+    const worker = await prisma.worker.findFirst({
+      where: { id: workerId, ...ownWorkerProfile(viewer) },
       include: {
         user: {
           select: {
@@ -125,8 +127,18 @@ export class WorkerService {
     return worker;
   }
 
-  async getWorkerStats(workerId: string) {
-    const [totalAssignments, completedTickets, avgRating] = await Promise.all([
+  async getWorkerStats(workerId: string, viewer: Viewer) {
+    // Same rule as the profile. (Before, a missing worker answered 200 with zeros.)
+    const worker = await prisma.worker.findFirst({
+      where: { id: workerId, ...ownWorkerProfile(viewer) },
+      select: { rating: true },
+    });
+
+    if (!worker) {
+      throw new AppError('Worker not found', 404);
+    }
+
+    const [totalAssignments, completedTickets] = await Promise.all([
       prisma.ticketAssignment.count({
         where: { workerId },
       }),
@@ -136,16 +148,12 @@ export class WorkerService {
           ticket: { status: 'COMPLETED' },
         },
       }),
-      prisma.worker.findUnique({
-        where: { id: workerId },
-        select: { rating: true },
-      }),
     ]);
 
     return {
       totalAssignments,
       completedTickets,
-      rating: avgRating?.rating || 0,
+      rating: worker.rating,
     };
   }
 }

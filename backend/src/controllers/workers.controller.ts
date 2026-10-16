@@ -41,7 +41,7 @@ export class WorkersController {
     try {
       const { id } = req.params;
 
-      const worker = await workerService.getWorkerById(id);
+      const worker = await workerService.getWorkerById(id, req.user!);
 
       res.status(200).json({
         success: true,
@@ -73,7 +73,7 @@ export class WorkersController {
     try {
       const { id } = req.params;
 
-      const stats = await workerService.getWorkerStats(id);
+      const stats = await workerService.getWorkerStats(id, req.user!);
 
       res.status(200).json({
         success: true,

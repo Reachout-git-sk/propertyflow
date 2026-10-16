@@ -44,7 +44,7 @@ export async function createWorld() {
   const alice = await user('TENANT', 'Alice');
   const bob = await user('TENANT', 'Bob');
   const workerUser = await user('WORKER', 'Walter');
-  await ownerDb.worker.create({ data: { userId: workerUser.id, skills: ['PLUMBING'] } });
+  const worker = await ownerDb.worker.create({ data: { userId: workerUser.id, skills: ['PLUMBING'] } });
 
   const property = await ownerDb.property.create({
     data: { name: 'Test Apartments', address: '1 Test Street' },
@@ -100,6 +100,7 @@ export async function createWorld() {
     alice,
     bob,
     workerUser,
+    worker,
     unitA,
     unitB,
     tenancyA,
