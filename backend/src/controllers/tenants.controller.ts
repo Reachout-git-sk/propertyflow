@@ -3,11 +3,14 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { z } from 'zod';
 import { hashPassword } from '../utils/passwordHash';
+import { strongPassword } from './auth.controller';
 
 export const createTenantSchema = z.object({
   body: z.object({
     email: z.string().email(),
-    password: z.string().min(8).optional(), // Admin can set password
+    // Required: the admin sets it and gives it to the tenant in person. There used to be a
+    // default (ChangeMe@123), the same for everyone and printed in this public repository.
+    password: strongPassword,
     firstName: z.string().min(1),
     lastName: z.string().min(1),
     phone: z.string().optional(),
@@ -187,10 +190,8 @@ export class TenantsController {
       let tenant = await prisma.user.findUnique({ where: { email } });
 
       if (!tenant) {
-        // Create user with admin-provided password or default
-        const tempPassword = password || 'ChangeMe@123';
-        const passwordHash = await hashPassword(tempPassword);
-        
+        const passwordHash = await hashPassword(password);
+
         tenant = await prisma.user.create({
           data: {
             email,
@@ -237,13 +238,12 @@ export class TenantsController {
         data: { isOccupied: true },
       });
 
+      // The password is NOT sent back: the admin just typed it, and a response body
+      // can end up in logs and browser developer tools.
       res.status(201).json({
         success: true,
         message: 'Tenant created successfully',
-        data: {
-          ...tenancy,
-          temporaryPassword: password || 'ChangeMe@123',
-        },
+        data: tenancy,
       });
     } catch (error) {
       next(error);

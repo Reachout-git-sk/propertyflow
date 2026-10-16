@@ -85,14 +85,13 @@ export const TenantManagement = () => {
       const response = await api.post("/tenants", payload);
       return response.data;
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
       queryClient.invalidateQueries({ queryKey: ["available-units"] });
 
-      // Show password to admin
-      const password = response.data.temporaryPassword;
+      // The API does not send the password back; the admin typed it in this form
       toast.success(
-        `Tenant added! Login: ${formData.email} / Password: ${password}`,
+        `Tenant added! ${formData.email} can log in with the password you set.`,
         { duration: 10000 },
       );
 
@@ -476,7 +475,7 @@ export const TenantManagement = () => {
           <Input
             label="Set Password *"
             type="text"
-            placeholder="Create a password for this tenant"
+            placeholder="8+ characters: upper, lower, number, symbol (@$!%*?&#)"
             value={formData.password}
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
