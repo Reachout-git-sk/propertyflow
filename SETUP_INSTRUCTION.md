@@ -35,10 +35,11 @@ copy .env.example .env
 notepad .env
 ```
 
-Update the DATABASE_URL in .env:
+Update the DATABASE_URL and APP_DATABASE_URL in .env:
 
 ```
 DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/propertyflow?schema=public"
+APP_DATABASE_URL="postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow?schema=public"
 ```
 
 ```bash
@@ -47,6 +48,9 @@ npm run prisma:generate
 
 # Run database migrations
 npm run prisma:migrate
+
+# Let the restricted app role (row-level security) log in
+npm run db:app-role
 
 # Seed database with sample data
 npm run prisma:seed

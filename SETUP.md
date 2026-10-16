@@ -57,8 +57,11 @@ cp .env.example .env
 Open `.env` in notepad and update these values:
 
 ```env
-# Replace YOUR_PASSWORD with your PostgreSQL password
+# Replace YOUR_PASSWORD with your PostgreSQL password (owner: used by migrations and the seed)
 DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/propertyflow?schema=public"
+
+# The app itself connects as a restricted role, so row-level security applies
+APP_DATABASE_URL="postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow?schema=public"
 
 # Generate a random secret (or use any long random string)
 JWT_SECRET="abc123xyz789-REPLACE-THIS-WITH-RANDOM-STRING"
@@ -80,6 +83,9 @@ npx prisma generate
 
 # Create database and tables
 npx prisma migrate dev
+
+# Let the restricted app role log in (password from APP_DATABASE_URL)
+npm run db:app-role
 
 # Load sample data (admin, tenants, units)
 npx prisma db seed

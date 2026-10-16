@@ -25,4 +25,4 @@ RUN mkdir -p uploads logs
 EXPOSE 5000
 
 # Start app
-CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:app-role && npm start"]

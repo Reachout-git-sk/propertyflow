@@ -14,7 +14,15 @@ if (!new URL(testDatabaseUrl).pathname.endsWith('_test')) {
   throw new Error(`Refusing to run tests against a database not named *_test: ${testDatabaseUrl}`);
 }
 
+// The app itself connects as the restricted role, like in production.
+// connection_limit=1 makes every query reuse ONE connection, so the RLS tests can prove
+// that one request's settings never leak into the next query on the same connection.
+const testAppDatabaseUrl =
+  process.env.TEST_APP_DATABASE_URL ??
+  'postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow_test?schema=public&connection_limit=1';
+
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = testDatabaseUrl;
+process.env.APP_DATABASE_URL = testAppDatabaseUrl;
 process.env.JWT_SECRET = 'test-only-secret-0123456789abcdefghijklmnopqrstuvwxyz';
 process.env.UPLOAD_DIR = path.join(os.tmpdir(), 'propertyflow-test-uploads');

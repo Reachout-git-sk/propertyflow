@@ -26,7 +26,10 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # Owner connection: only for `prisma migrate deploy` and `npm run db:app-role` at startup
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/propertyflow?schema=public
+      # The app's own connection as the restricted role, so row-level security applies
+      APP_DATABASE_URL: postgresql://propertyflow_app:local-dev-only-password@postgres:5432/propertyflow?schema=public
       JWT_SECRET: your-super-secret-jwt-key-change-this
       JWT_EXPIRES_IN: 7d
       PORT: 5000

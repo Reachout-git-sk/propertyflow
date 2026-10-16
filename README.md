@@ -92,6 +92,9 @@ npx prisma generate
 # Run migrations
 npx prisma migrate dev
 
+# Let the restricted app role (row-level security) log in
+npm run db:app-role
+
 # Seed database
 npx prisma db seed
 

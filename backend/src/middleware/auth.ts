@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../config/jwt';
+import { runWithDbContext } from '../config/database';
 import { AppError } from './errorHandler';
 
 interface JwtPayload {
@@ -26,7 +27,10 @@ export const authenticate = async (
     const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
 
     req.user = decoded as any;
-    next();
+
+    // Everything after this point (routes, services, database queries) runs "as" this
+    // user, so the database's row-level security policies know who is asking.
+    runWithDbContext({ userId: decoded.id, role: decoded.role }, () => next());
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return next(new AppError('Invalid token', 401));

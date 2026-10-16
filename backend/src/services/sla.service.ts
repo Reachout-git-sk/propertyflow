@@ -1,4 +1,4 @@
-import prisma from '../config/database';
+import prisma, { runAsSystem } from '../config/database';
 import { NotificationService } from './notification.service';
 import cron from 'node-cron';
 import logger from '../utils/logger';
@@ -10,7 +10,8 @@ export class SLAService {
   startSLAMonitoring() {
     cron.schedule('0 * * * *', async () => {
       logger.info('Running SLA monitoring check...');
-      await this.checkOverdueTickets();
+      // No user is logged in here, so run with SYSTEM access; without it, RLS would hide every ticket
+      await runAsSystem(() => this.checkOverdueTickets());
     });
   }
 

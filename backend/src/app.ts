@@ -1,7 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import fs from 'fs';
@@ -22,8 +21,7 @@ import notificationsRoutes from './routes/notifications.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import unitsRoutes from './routes/units.routes';
 
-// Load environment variables
-dotenv.config();
+// Environment variables are loaded in server.ts (tests set their own in tests/env.ts)
 
 const app: Application = express();
 

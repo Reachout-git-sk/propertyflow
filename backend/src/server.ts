@@ -1,3 +1,6 @@
+// Must be the first import: it reads .env into process.env before any other file
+// (database.ts, config/jwt.ts) looks at process.env
+import 'dotenv/config';
 import app from './app';
 import logger from './utils/logger';
 import { SLAService } from './services/sla.service';

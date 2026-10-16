@@ -15,6 +15,7 @@ Create a `.env` file in the backend directory:
 
 ```env
 DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/propertyflow?schema=public"
+APP_DATABASE_URL="postgresql://propertyflow_app:local-dev-only-password@localhost:5432/propertyflow?schema=public"
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 JWT_EXPIRES_IN="7d"
 PORT=5000
@@ -32,6 +33,9 @@ npm run prisma:generate
 
 # Run migrations
 npm run prisma:migrate
+
+# Let the restricted app role (row-level security) log in
+npm run db:app-role
 
 # Seed database with initial data
 npm run prisma:seed

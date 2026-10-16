@@ -12,4 +12,6 @@ export default async function globalSetup() {
     stdio: 'inherit',
     env: process.env,
   });
+  // Let the restricted app role log in (the same step a real deployment runs)
+  execSync('npm run db:app-role --silent', { stdio: 'inherit', env: process.env });
 }
