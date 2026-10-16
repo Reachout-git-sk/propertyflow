@@ -9,9 +9,22 @@ export interface Invite {
   expiresAt: string;
 }
 
+export interface SignupData {
+  email: string;
+  inviteCode: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  password: string;
+}
+
 export const authService = {
   async login(email: string, password: string) {
     const response = await api.post('/auth/login', { email, password });
+    return response.data.data;
+  },
+  async signup(data: SignupData) {
+    const response = await api.post('/auth/signup', data);
     return response.data.data;
   },
   async createInvite(email: string, role: string): Promise<Invite> {
