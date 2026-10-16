@@ -3,7 +3,7 @@
 node_modules/
 */node_modules/
 npm-debug.log*
-package-lock.json
+# package-lock.json is committed on purpose: `npm ci` (Docker and CI) needs it
 
 # Environment variables - NEVER COMMIT!
 .env
@@ -38,5 +38,5 @@ Thumbs.db
 *.db
 *.sqlite
 
-# Prisma
-backend/prisma/migrations/**/migration.sql
+# Prisma: migration.sql files are committed on purpose.
+# `prisma migrate deploy` (Dockerfile and CI) can only apply migrations that are in git.

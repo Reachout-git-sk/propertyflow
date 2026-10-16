@@ -8,7 +8,6 @@ import fs from 'fs';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
-import logger from './utils/logger';
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -23,14 +22,10 @@ import notificationsRoutes from './routes/notifications.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import unitsRoutes from './routes/units.routes';
 
-// Import services
-import { SLAService } from './services/sla.service';
-
 // Load environment variables
 dotenv.config();
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
 
 // Create necessary directories
 const uploadsDir = process.env.UPLOAD_DIR || './uploads';
@@ -98,15 +93,5 @@ app.use((req: Request, res: Response) => {
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 Server is running on port ${PORT}`);
-  logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  // Start SLA monitoring
-  const slaService = new SLAService();
-  slaService.startSLAMonitoring();
-  logger.info('✅ SLA monitoring started');
-});
-
+// The server is started in server.ts, so tests can import the app without opening a port
 export default app;

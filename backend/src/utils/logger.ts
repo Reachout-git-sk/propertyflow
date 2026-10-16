@@ -10,6 +10,8 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   defaultMeta: { service: 'propertyflow-api' },
+  // Keep test output readable
+  silent: process.env.NODE_ENV === 'test',
   transports: [
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/combined.log' }),
