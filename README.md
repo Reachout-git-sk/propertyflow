@@ -62,7 +62,7 @@
 
 ### Prerequisites
 
-- Node.js 20+ ([Download](https://nodejs.org/))
+- Node.js 22+ ([Download](https://nodejs.org/))
 - PostgreSQL 15+ ([Download](https://www.postgresql.org/download/))
 - Git
 
@@ -128,6 +128,20 @@ Frontend runs at: **http://localhost:5173**
 **4. Access the Application**
 
 Open browser: **http://localhost:5173**
+
+### Or run everything with Docker
+
+```bash
+# Once: create .env next to docker-compose.yml with a random JWT secret
+node -e "require('fs').writeFileSync('.env', 'JWT_SECRET=' + require('crypto').randomBytes(48).toString('base64url') + '\n')"
+
+docker compose up --build
+```
+
+Open **http://localhost**. nginx serves the app and forwards `/api` to the backend, which
+applies the migrations each time it starts. The database starts with no users; the seed from
+step 2 (`npx prisma db seed`) adds the demo accounts below to the same database.
+Stop with `docker compose down` (your data stays; `down -v` would delete it).
 
 ## 🧪 Running the Tests
 

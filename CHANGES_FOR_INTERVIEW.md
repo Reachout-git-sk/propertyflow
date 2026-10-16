@@ -106,10 +106,13 @@ A version you can defend line by line:
 5. Admin-created tenants get the default password `ChangeMe@123`, returned in the API response.
 6. Rate-limit counters are in memory per server process (several servers need Redis).
 7. Not under RLS: `users` (login must look users up first), `notifications`, and raw SQL queries.
-8. Docker: `docker-compose.yml` refers to a `frontend/Dockerfile` that does not exist, and the
-   backend image does not build (checked 16 Oct 2026: it installs production packages only, then
-   runs `tsc`, which fails with "tsc: not found"; the fix is a multi-stage build). It also uses
-   Node 20, which reached end-of-life in April 2026.
+8. Docker: **fixed 16 Oct 2026** (`b68e0a7`). Before, the backend image did not build ("tsc: not
+   found") and `frontend/Dockerfile` did not exist. Now `docker compose up --build` starts
+   Postgres, the backend (migrations and the RLS app role applied on start) and the frontend
+   (nginx, forwards `/api` to the backend), using multi-stage builds on Node 22. Still missing:
+   images are only built on this computer (CI does not build them, no registry), and in
+   production mode the backend logs only to files, so `docker compose logs backend` shows just
+   the startup steps.
 9. CI covers the backend only (no frontend build), and there is no deployment (CD).
 10. README listed "Audit logging", but the `audit_logs` table is never written to.
 11. No AWS deployment and no CloudWatch monitoring.
