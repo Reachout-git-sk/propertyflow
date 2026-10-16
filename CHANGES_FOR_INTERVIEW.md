@@ -14,7 +14,7 @@ as an audit of my own project. Say it that way.
 | 0 | Test setup: Jest + Supertest against a real PostgreSQL test database; migrations and lockfile committed | `4913379` | the suite below |
 | 1 | IDOR fixes: tenants can only reach their own records (404 otherwise) | `bb6aae4` | 21 tests, **13 failed before** |
 | 2 | PostgreSQL row-level security (RLS) on tenant-owned tables | `325da95`, `dd80522` | 15 tests, incl. "code check switched off, still 404" |
-| 3 | GitHub Actions CI (install, build, migration check, tests on Postgres) | `396cc89` | full run simulated locally on a fresh database |
+| 3 | GitHub Actions CI (install, build, migration check, tests on Postgres) | `396cc89` | green on GitHub since 16 Oct 2026: [run 38958850580](https://github.com/Reachout-git-sk/propertyflow/actions/runs/38958850580), 53 s, migration check and 58/58 tests |
 | 4 | Ticket numbers from a database sequence instead of 4 random digits | `866789c` | 4 tests, **3 failed before** |
 | 5 | App refuses to start without a real JWT secret; tokens last 1 hour, not 7 days | `c6705cc` | 10 tests; old setup let a forged ADMIN token in (HTTP 200) |
 | 6 | Stricter login rate limits (failed attempts only) | `9fea054` | 8 tests, **4 failed before** |
@@ -50,7 +50,9 @@ While doing this I found and fixed a real bug: slow file uploads lost the reques
 
 **3. CI.** `.github/workflows/ci.yml` runs on every push and pull request: `npm ci`,
 `prisma generate`, TypeScript build, a check that migrations match `schema.prisma`, and all
-tests against a PostgreSQL service container. Read-only token permissions.
+tests against a PostgreSQL service container. Read-only token permissions. The first run on
+GitHub (16 Oct 2026, commit `c3675a8`) passed every step in 53 seconds, with 58/58 tests. The
+later commits (rows 7–11, 103 tests) are not pushed yet, so CI has not run them on GitHub.
 
 **4. Ticket numbers.** 4 random digits collide after about 118 tickets (birthday paradox),
 and the colliding insert crashed with a 500. PostgreSQL now assigns `TKT-2026-000042` from a
@@ -134,7 +136,7 @@ benchmark the extra lookup.
 | rate-limited | Yes | General limit from the start; strict login limits since 16 Oct 2026. |
 | deployed to AWS (EKS, RDS) | **No** | Nothing is deployed. Remove it, or say "designed for" only after writing a plan. |
 | Docker | Partly | Postgres for development runs in Docker. The full `docker compose up` stack does not build (see gaps). |
-| GitHub Actions CI/CD | **CI yes, CD no** | CI exists since 16 Oct 2026 (it first runs on GitHub after the next push). Nothing deploys automatically. |
+| GitHub Actions CI/CD | **CI yes, CD no** | CI has run green on GitHub since 16 Oct 2026 (run 38958850580: build, migration check, 58/58 tests). Nothing deploys automatically. |
 | CloudWatch monitoring | **No** | Remove it. Logging is Winston to local files. |
 
 A version you can defend line by line:
