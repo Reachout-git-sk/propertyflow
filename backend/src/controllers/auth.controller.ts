@@ -20,6 +20,15 @@ export const signupSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     phone: z.string().optional(),
+    // The one-time code from the admin's invite (POST /api/auth/invites)
+    inviteCode: z.string({ required_error: 'Invite code is required' }).min(1).max(100),
+  }),
+});
+
+export const inviteSchema = z.object({
+  body: z.object({
+    email: z.string().email('Invalid email format'),
+    role: z.enum(['ADMIN', 'TENANT', 'WORKER']),
   }),
 });
 
@@ -33,14 +42,30 @@ export const loginSchema = z.object({
 export class AuthController {
   async signup(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password, firstName, lastName, phone } = req.body;
-      
-      const result = await authService.signup(email, password, firstName, lastName, phone);
-      
+      const { email, password, firstName, lastName, inviteCode, phone } = req.body;
+
+      const result = await authService.signup(email, password, firstName, lastName, inviteCode, phone);
+
       res.status(201).json({
         success: true,
         message: 'Account created successfully',
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, role } = req.body;
+
+      const invite = await authService.createInvite(email, role, req.user!.id);
+
+      res.status(201).json({
+        success: true,
+        message: 'Invite created. Give the code to this person yourself; it is shown only once.',
+        data: invite,
       });
     } catch (error) {
       next(error);

@@ -164,6 +164,11 @@ model EmailWhitelist {
   approvedBy String?  @map("approved_by")
   createdAt  DateTime @default(now()) @map("created_at")
 
+  // One-time sign-up code from POST /api/auth/invites. Only its SHA-256 hash is stored,
+  // and it is cleared when used, so it works once and a database leak does not reveal it.
+  inviteCodeHash  String?   @map("invite_code_hash")
+  inviteExpiresAt DateTime? @map("invite_expires_at")
+
   approver User? @relation("WhitelistApprover", fields: [approvedBy], references: [id])
 
   @@map("email_whitelist")

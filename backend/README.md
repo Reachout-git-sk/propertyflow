@@ -67,7 +67,8 @@ After seeding, you can login with:
 
 ### Authentication Endpoints
 
-- `POST /api/auth/signup` - Register new user
+- `POST /api/auth/invites` - Admin only: approve an email for a role and get a one-time sign-up code (valid 7 days)
+- `POST /api/auth/signup` - Register new user (needs `inviteCode` from an admin's invite)
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/profile` - Get current user profile
 

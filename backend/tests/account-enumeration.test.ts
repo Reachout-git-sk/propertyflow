@@ -3,7 +3,7 @@ import request from 'supertest';
 import app from '../src/app';
 import prisma from '../src/config/database';
 import * as passwordHash from '../src/utils/passwordHash';
-import { ownerDb, resetDatabase } from './helpers';
+import { ownerDb, resetDatabase, tokenFor } from './helpers';
 
 // "Account enumeration" = finding out which emails have an account (or are approved to
 // sign up) just from the error messages. An attacker then knows exactly whom to target
@@ -18,10 +18,12 @@ const signupRefused = {
 
 const login = (email: string, password: string) =>
   request(app).post('/api/auth/login').send({ email, password });
-const signup = (email: string) =>
+const signup = (email: string, inviteCode = 'made-up-code-made-up-cod') =>
   request(app)
     .post('/api/auth/signup')
-    .send({ email, password: PASSWORD, firstName: 'New', lastName: 'Person' });
+    .send({ email, password: PASSWORD, firstName: 'New', lastName: 'Person', inviteCode });
+
+let adminToken: string;
 
 beforeAll(async () => {
   await resetDatabase();
@@ -34,12 +36,12 @@ beforeAll(async () => {
       data: { email, passwordHash: hash, role: 'TENANT', firstName: 'Test', lastName: 'User', isActive },
     });
   }
-  await ownerDb.emailWhitelist.createMany({
-    data: [
-      { email: 'active@test.local', role: 'TENANT' }, // approved, and already signed up
-      { email: 'approved-new@test.local', role: 'TENANT' }, // approved, no account yet
-    ],
+  // approved, and already signed up
+  await ownerDb.emailWhitelist.create({ data: { email: 'active@test.local', role: 'TENANT' } });
+  const admin = await ownerDb.user.create({
+    data: { email: 'admin@test.local', passwordHash: hash, role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
   });
+  adminToken = tokenFor(admin);
 });
 
 afterEach(() => {
@@ -90,8 +92,12 @@ describe('POST /api/auth/login', () => {
 });
 
 describe('POST /api/auth/signup', () => {
-  it('creates an account for an approved email that has no account yet', async () => {
-    const res = await signup('approved-new@test.local');
+  it('creates an account for an invited email that has no account yet', async () => {
+    const invite = await request(app)
+      .post('/api/auth/invites')
+      .set({ Authorization: `Bearer ${adminToken}` })
+      .send({ email: 'approved-new@test.local', role: 'TENANT' });
+    const res = await signup('approved-new@test.local', invite.body.data.inviteCode);
     expect(res.status).toBe(201);
   });
 
