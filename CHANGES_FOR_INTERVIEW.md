@@ -140,8 +140,8 @@ The code is *used up* in one `UPDATE` that also checks it is still there, so if 
 race with one code, PostgreSQL lets only one through. I checked that this test catches the
 bug: with that step switched off, the second sign-up crashed with a 500. Trade-offs: the admin
 must hand the code over (the app sends no email), and if creating the account fails after the
-code was used up, the admin sends a new invite. There is no screen for invites or for sign-up
-yet (API only).
+code was used up, the admin sends a new invite. The screens for both came later the same day
+(see gap 2 below).
 
 ## Resume line check
 
@@ -205,8 +205,11 @@ ownership. Found while fixing them: items 2–6 (item 2 is now fixed too).
 1. No refresh tokens, and the token is stored in `localStorage` (readable if there is ever an
    XSS bug).
 2. Sign-up email ownership: **fixed 16 Oct 2026** (`6a49d9b`, row 12). Sign-up now needs a
-   one-time invite code from an admin. Still missing: no screen for creating invites or for
-   signing up with a code (API only), and no emailed invitation links (the app sends no email).
+   one-time invite code from an admin. Still missing: no emailed invitation links (the app
+   sends no email).
+   Screens added the same day (`631e6b8`, `c31d6df`): admins create invites at `/admin/invites`
+   (code shown once, with a Copy button) and people sign up with the code at `/signup`; 16
+   Vitest tests (the frontend's first), all 16 failed before. Not yet tried end to end in a browser.
 3. The rule "workers only change tickets assigned to them" is in the code only. Row-level
    security still lets the worker role update every ticket.
 4. Workers can set any status, including CLOSED and CANCELLED, and the status value is not
