@@ -154,7 +154,9 @@ cd backend
 npm test
 ```
 
-The same tests run on GitHub Actions for every push and pull request
+The frontend tests (Vitest, no database needed) run with `cd frontend && npm test`.
+
+Both suites run on GitHub Actions for every push and pull request
 (see [.github/workflows/ci.yml](./.github/workflows/ci.yml)).
 
 ## 🔐 Default Credentials

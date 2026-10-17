@@ -28,8 +28,9 @@ as an audit of my own project. Say it that way.
 Rows 0–6 and 7–12 were all done on 16 October 2026 (7–12 in the evening, as a second pass
 over the gaps the first pass found).
 
-**116 tests in 11 files, all passing.** Run them with `docker compose up -d postgres`, then
-`cd backend && npm test`.
+**Backend: 116 tests in 11 files. Frontend: 19 tests in 4 files. All passing.** Run the backend
+tests with `docker compose up -d postgres`, then `cd backend && npm test`; the frontend tests
+with `cd frontend && npm test`.
 
 ## What each change means
 
@@ -52,8 +53,9 @@ While doing this I found and fixed a real bug: slow file uploads lost the reques
 **3. CI.** `.github/workflows/ci.yml` runs on every push and pull request: `npm ci`,
 `prisma generate`, TypeScript build, a check that migrations match `schema.prisma`, and all
 tests against a PostgreSQL service container. Read-only token permissions. The first run on
-GitHub (16 Oct 2026, commit `c3675a8`) passed every step in 53 seconds, with 58/58 tests. The
-later commits (rows 7–11, 103 tests) are not pushed yet, so CI has not run them on GitHub.
+GitHub (16 Oct 2026, commit `c3675a8`) passed every step in 53 seconds, with 58/58 tests.
+A second job now also runs the frontend tests and build. The badge at the top of the README
+shows the result of the latest run.
 
 **4. Ticket numbers.** 4 random digits collide after about 118 tickets (birthday paradox),
 and the colliding insert crashed with a 500. PostgreSQL now assigns `TKT-2026-000042` from a
@@ -155,8 +157,8 @@ code was used up, the admin sends a new invite. The screens for both came later 
 | 8 authenticated APIs | Number is wrong | 46 endpoints in 11 route groups (43 before the two download routes and the invite route of 16 Oct 2026); all except signup and login require a JWT. |
 | rate-limited | Yes | General limit from the start; strict login limits since 16 Oct 2026. |
 | deployed to AWS (EKS, RDS) | **No** | Nothing is deployed. Remove it, or say "designed for" only after writing a plan. |
-| Docker | Partly | Postgres for development runs in Docker. The full `docker compose up` stack does not build (see gaps). |
-| GitHub Actions CI/CD | **CI yes, CD no** | CI has run green on GitHub since 16 Oct 2026 (run 38958850580: build, migration check, 58/58 tests). Nothing deploys automatically. |
+| Docker | **Yes, locally, since 16 Oct 2026** | `docker compose up --build` runs Postgres, the backend and the frontend (multi-stage builds, migrations on start). The images are built on this computer only and nothing is deployed. |
+| GitHub Actions CI/CD | **CI yes, CD no** | CI has run green on GitHub since 16 Oct 2026 (first run 38958850580). It runs the backend tests on Postgres plus the frontend tests and build. Nothing deploys automatically. |
 | CloudWatch monitoring | **No** | Remove it. Logging is Winston to local files. |
 
 A version you can defend line by line:
@@ -165,8 +167,9 @@ A version you can defend line by line:
 > with JWT auth and role-based access. Audited it in October 2026: fixed IDOR and other
 > access-control bugs (public file uploads, worker permissions, account enumeration, sign-up
 > without proof of email ownership, tokens that outlived deactivation), added PostgreSQL
-> row-level security as defense in depth, startup secret validation, login rate limiting and
-> a GitHub Actions CI pipeline running 116 integration tests on Postgres.
+> row-level security as defense in depth, startup secret validation, login rate limiting, a
+> working Docker Compose stack and a GitHub Actions CI pipeline running 116 backend integration
+> tests on Postgres plus 19 frontend tests.
 
 ## How to talk about it
 
@@ -230,8 +233,7 @@ ownership. Found while fixing them: items 2–6 (item 2 is now fixed too).
    the startup steps.
 10. CI frontend: **added 16 Oct 2026**. Before, CI covered the backend only. Now a second job
     (`frontend` in `ci.yml`) runs `npm ci`, the Vitest tests (16/16 when added) and
-    `npm run build` (tsc and vite build) next to the backend job. Both pass on this computer,
-    but the job has not run on GitHub yet because nothing has been pushed since. Still
+    `npm run build` (tsc and vite build) next to the backend job, on every push. Still
     missing: no deployment (CD).
 11. README listed "Audit logging", but the `audit_logs` table is never written to.
 12. No AWS deployment and no CloudWatch monitoring.
